@@ -17,9 +17,9 @@ public class PlayerInventory : MonoBehaviour
 {
     public uint GrabRange = 100;
     
-    private int LMB_ID = 0;
-    private int RMB_ID = 1;
-    private int MMB_ID = 2;
+    public static int LMB_ID = 0;
+    public static int RMB_ID = 1;
+    public static int MMB_ID = 2;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private List<Item> inventory = new List<Item>();
