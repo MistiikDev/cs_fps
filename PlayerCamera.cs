@@ -3,28 +3,57 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class PlayerCamera : MonoBehaviour
 {
-    [SerializeField] public PlayerMouvement playerMouvement;
-    
-    public Camera camera;
+    public Camera player_camera;
     public GameObject cameraPosition;
+    public GameObject cameraRotation;
     
-    public float cameraSmoothness = 0.15f;
+    public GameObject itemTransform;
+    
+    public float cameraSmoothness = 0.05f;
     public float mouseSensitivity = 100f;
-
+    
     private float XRot;
     private float YRot;
     
     private Vector3 _cameraBobOffset;
     private Vector3 _cameraImpulseOffset;
+    private Vector3 _cameraRecoilOffset;
+
+    private Vector3 _currentCameraVelocity;
     
     private Coroutine _impulseCoroutine;
+    private Coroutine _recoilCoroutine;
     
-    private void AnimateCameraOnLand(Collision collider)
+    private Player player;
+    
+    public void Init(Player _player)
     {
-        float impactY = -collider.impulse.y / 150f;
+        player = _player;
+    }
+    
+    public void Shake(float ShakeAmount, float duration) 
+    {
+        if (_recoilCoroutine != null)
+        {
+            StopCoroutine(_recoilCoroutine);
+        }
+
+        _recoilCoroutine = StartCoroutine(ApplyCameraRecoil(ShakeAmount, duration));
+    }
+
+    public GameObject GetItemTransform()
+    {
+        return itemTransform;
+    }
+    public void AnimateCameraOnLand(Collision collider)
+    {
+        float impactY = -collider.impulse.y / 200f;
+
+        impactY = Mathf.Clamp(0, Mathf.Sign(impactY) * 350, impactY);
 
         if (_impulseCoroutine != null)
         {
@@ -34,6 +63,23 @@ public class PlayerCamera : MonoBehaviour
         if (impactY > 0) return;
 
         _impulseCoroutine = StartCoroutine(ApplyCameraImpulse(Vector3.up * impactY, 1.0f));
+    }
+
+    IEnumerator ApplyCameraRecoil(float RecoilAmount, float duration)
+    {
+        float elapsedTime = 0f;
+        float RecoilSeedX = Random.Range(RecoilAmount / 2, RecoilAmount * 2);
+        float RecoilSeedY = Random.Range(-RecoilAmount / 2, RecoilAmount * 2) * 2;
+        
+        _cameraRecoilOffset += new Vector3(-RecoilSeedX, RecoilSeedY, 0);
+        
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            
+            _cameraRecoilOffset = Vector3.Slerp(_cameraRecoilOffset, Vector3.zero, (float)(elapsedTime / duration));
+            yield return null;
+        }
     }
     
     IEnumerator ApplyCameraImpulse(Vector3 Impulse, float duration) 
@@ -84,11 +130,15 @@ public class PlayerCamera : MonoBehaviour
             this.cameraPosition.transform.position.z
         ) + _cameraBobOffset + _cameraImpulseOffset;
 
-        Vector3 playerVelocity = playerMouvement.GetPlayerVelocity();
+        Vector3 cameraTargetPosition = Vector3.SmoothDamp(this.player_camera.transform.position, cameraTarget, ref _currentCameraVelocity, cameraSmoothness);
+        Quaternion cameraTargetRotation = Quaternion.Euler(XRot + _cameraRecoilOffset.x, YRot + _cameraRecoilOffset.y, 0f);
         
-        this.camera.transform.position = Vector3.SmoothDamp(this.camera.transform.position, cameraTarget, ref playerVelocity, cameraSmoothness);
+        this.player_camera.transform.position = cameraTargetPosition;
+        this.player_camera.transform.localRotation = cameraTargetRotation;
         
-        this.camera.transform.localRotation = Quaternion.Euler(XRot, YRot, 0f);
+        this.cameraRotation.transform.position = this.player_camera.transform.position;
+        this.cameraRotation.transform.rotation = this.player_camera.transform.rotation;
+        
         this.transform.rotation = Quaternion.Euler(0f, YRot, 0f);
     }
 }
