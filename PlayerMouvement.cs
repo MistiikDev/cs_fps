@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerMouvement : MonoBehaviour
+public class PlayerMouvement : Player
 {
     public Rigidbody rb;
     
@@ -12,9 +12,12 @@ public class PlayerMouvement : MonoBehaviour
     private float GRAVITY = (float)(9.81 / 8);
     private float playerHeight;
     
-    private bool isCrouching;
+    public bool b_isCrouching;
     private bool _jumpRequested;
-
+    private bool canJump;
+    
+    private Player player;
+    
     public Vector3 GetPlayerVelocity()
     {
         return this._playerVelocity;
@@ -26,11 +29,16 @@ public class PlayerMouvement : MonoBehaviour
         playerHeight = this.transform.localScale.y;
     }
 
+    public void Init(Player _player)
+    {
+        player = _player;
+    }
+    
     private void Crouch(bool isCrouching)
     {
-        this.isCrouching = isCrouching;
+        this.b_isCrouching = isCrouching;
 
-        if (this.isCrouching)
+        if (this.b_isCrouching)
         {
             this.transform.localScale = new Vector3(this.transform.localScale.x, playerHeight / 2, this.transform.localScale.z);
         }
@@ -40,11 +48,15 @@ public class PlayerMouvement : MonoBehaviour
         }
     }
     
-    private bool b_isGrounded()
+    public bool b_isGrounded()
     {
-        return Physics.Raycast(this.transform.position, Vector3.down, out RaycastHit hit, 0.2f);
+        return Physics.Raycast(this.pCamera.player_camera.transform.position, Vector3.down, out RaycastHit hit, this.transform.localScale.y + 0.1f);
     }
-    
+
+    public bool b_isWalking()
+    {
+        return rb.linearVelocity.magnitude > 0.1f;
+    }
     
     void Update()
     {
@@ -60,11 +72,14 @@ public class PlayerMouvement : MonoBehaviour
         {
             Crouch(false);
         }
-
+        
+        if (this.b_isGrounded())
+        {
+            this.canJump = true;
+        }
     }
     void FixedUpdate()
     {
-        // Get input
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
 
@@ -78,8 +93,10 @@ public class PlayerMouvement : MonoBehaviour
         
         rb.AddForce(velocityChange + (Vector3.down * GRAVITY), ForceMode.VelocityChange); // Add more gravity;
 
-        if (_jumpRequested)
+        if (_jumpRequested && canJump)
         {
+            this.canJump = false;
+            
             Vector3 velocity = rb.linearVelocity;
             velocity.y = 0f;
             rb.linearVelocity = velocity;
