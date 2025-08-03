@@ -21,8 +21,10 @@ public class Gun : Item
     public GunLogic gunLogic = new GunLogic();
     public GunHitRegistration gunHitReg = new GunHitRegistration();
     
+    [Header("Audio")]
     public List<Audio> registerdAudio;
     
+    [Header("Firing")]
     public uint maxAmmo;
     public float bulletSpeed = 20f;
     public float burstBullets = 3;
@@ -32,12 +34,22 @@ public class Gun : Item
     
     public FireMode fireMode = FireMode.Semi;
     
+    [Header("Rendering")]
+    public float cameraRecoil = 2f;
+    public float BobFrequencyMult = 6f;
+    public float BobAmplitudeMult = 0.05f;
+    
+    public float gunMoveSpeed = 0.3f;
+    public float gunBobSpeed = 0.1f;
+    
+    [Header("Prefabs")]
     public GameObject gunDefaultTransform;
     public GameObject firePoint;
     public GameObject bulletPrefab;
+    public GameObject gunGrip;
     
     private Player user;
-
+    
     public Player GetUser()
     {
         return user;
@@ -69,20 +81,20 @@ public class Gun : Item
     {
         gunRenderer.LateUpdate();
     }    
-    public override void OnPick(Player player)
+    public override void Picked(Player player)
     {
         this.user = player;
         
-        gunAudio?.Init(this);
-        gunAnimation?.Init(this);
-        gunRenderer?.Init(this);
-        gunLogic?.Init(this);
-        gunHitReg?.Init(this);
+        gunAudio.Init(this);
+        gunAnimation.Init(this);
+        gunRenderer.Init(this);
+        gunLogic.Init(this);
+        gunHitReg.Init(this);
         
         gunAnimation.SetEnabled(true);
     }
 
-    public override void OnDrop()
+    public override void Dropped()
     {
         gunAnimation.SetEnabled(false);
         this.user = null;
