@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class GunLogic
@@ -57,6 +57,7 @@ public class GunLogic
     
     public void Reload()
     {
+        if (!gun) return;
         if (currentAmmo == gun.maxAmmo) return;
         
         currentAmmo = gun.maxAmmo;
