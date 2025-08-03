@@ -3,17 +3,8 @@ using UnityEngine;
 
 public class GunRenderer
 {
-    public float cameraRecoil = 2f;
-    public float BobFrequencyMult = 6f;
-    public float BobAmplitudeMult = 0.05f;
-    
-    public float gunMoveSpeed = 0.3f;
-    public float gunBobSpeed = 0.1f;
-    
     private int playerMask;
     private float rotationLerpSpeed = 0.3f;
-    
-    private ParticleSystem muzzleFlash;
     
     private Vector3 gunBobOffset = Vector3.zero;
     private Vector3 gunSmoothVelocity = Vector3.zero;
@@ -27,12 +18,11 @@ public class GunRenderer
         player = gun.GetUser();
         
         playerMask = ~LayerMask.GetMask("PlayerModel");
-        muzzleFlash = gun.firePoint.GetComponentInChildren<ParticleSystem>();
     }
 
     public void ShootVFX()
     {
-        player.pCamera.Shake(cameraRecoil, 1f);
+        player.pCamera.Shake(gun.cameraRecoil, 1f);
     }
     
     public IEnumerator DrawBullet()
@@ -43,6 +33,10 @@ public class GunRenderer
         Vector3 direction = startRotation * Vector3.forward;
         
         GameObject bullet = Gun.Instantiate(gun.bulletPrefab, startPosition, startRotation);
+        
+        TrailRenderer trail = bullet.GetComponent<TrailRenderer>();
+        trail.Clear();
+        trail.transform.position = startPosition;
         
         float bulletLifeTime = 1f;
         float elapsedTime = 0.0f;
@@ -69,16 +63,16 @@ public class GunRenderer
 
     public void LateUpdate()
     {
+        if (!gun) return;
         if (gun.b_isEquipped() && player && gun.gunDefaultTransform)
         {
-            Debug.Log("Gun Render update");
-            float bobFrequency = player.pMouvement.b_isWalking() ? BobFrequencyMult : 0f;
-            float bobAmplitude = player.pMouvement.b_isWalking() ? BobAmplitudeMult : 0f;
+            float bobFrequency = player.pMouvement.b_isWalking() ? gun.BobFrequencyMult : 0f;
+            float bobAmplitude = player.pMouvement.b_isWalking() ? gun.BobAmplitudeMult : 0f;
 
             float bobX = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude;
             float bobY = Mathf.Cos(Time.time * bobFrequency * 2) * bobAmplitude * 0.5f;
             
-            gunBobOffset = Vector3.Lerp(gunBobOffset, new Vector3(bobX, bobY, 0f), gunBobSpeed * Time.deltaTime * 60f);
+            gunBobOffset = Vector3.Lerp(gunBobOffset, new Vector3(bobX, bobY, 0f), gun.gunBobSpeed * Time.deltaTime * 60f);
 
             //
             Vector3 start = player.pCamera.player_camera.transform.position;
@@ -100,7 +94,7 @@ public class GunRenderer
             Quaternion gunSwayOffset = Quaternion.Euler(Input.mousePositionDelta.y, Input.mousePositionDelta.x, 0);
             //
             
-            Vector3 gunTarget = gun.gunDefaultTransform.transform.position + gunBobOffset;
+            Vector3 gunTarget = gun.gunDefaultTransform.transform.position + (gun.gunDefaultTransform.transform.position - gun.gunGrip.transform.position) + gunBobOffset;
             Quaternion gunTargetRotation = Quaternion.RotateTowards(
                 gun.transform.rotation, 
                 aimLookOffset * gunSwayOffset, 
@@ -110,7 +104,7 @@ public class GunRenderer
                 gun.transform.position,
                     gunTarget, 
                     ref gunSmoothVelocity, 
-                    gunMoveSpeed);
+                    gun.gunMoveSpeed);
             
             gun.transform.rotation = Quaternion.Slerp(
                 gun.transform.rotation, 
