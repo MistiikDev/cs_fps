@@ -8,7 +8,8 @@ public class GunRenderer
     
     private Vector3 gunBobOffset = Vector3.zero;
     private Vector3 gunSmoothVelocity = Vector3.zero;
-    
+
+    private ParticleSystem muzzleFlash;
     private Gun gun;
     private Player player;
 
@@ -17,12 +18,14 @@ public class GunRenderer
         gun = _gun;
         player = gun.GetUser();
         
+        muzzleFlash = gun.firePoint.GetComponent<ParticleSystem>();
         playerMask = ~LayerMask.GetMask("PlayerModel");
     }
 
     public void ShootVFX()
     {
         player.pCamera.Shake(gun.cameraRecoil, 1f);
+        muzzleFlash.Play();
     }
     
     public IEnumerator DrawBullet()
@@ -33,31 +36,18 @@ public class GunRenderer
         Vector3 direction = startRotation * Vector3.forward;
         
         GameObject bullet = Gun.Instantiate(gun.bulletPrefab, startPosition, startRotation);
-        
         TrailRenderer trail = bullet.GetComponent<TrailRenderer>();
-        trail.Clear();
-        trail.transform.position = startPosition;
+
+        Bullet currentBullet = gun.gunHitReg.CreateTracer(
+            startPosition, direction, gun.bulletDropIntensity, 470, 1000, (float)1e3);
         
-        float bulletLifeTime = 1f;
-        float elapsedTime = 0.0f;
+        currentBullet.SetHitTexture(gun.gunBulletHoleTexture);
+        currentBullet.SetBulletTracer(bullet);
+        currentBullet.SetBulletTrailRenderer(trail);
         
-        while (elapsedTime < bulletLifeTime)
-        {
-            Vector3 pos = bullet.transform.position;
-            Vector3 nextPosition = gun.gunHitReg.GetNextStartPosition(pos, direction);
-            
-            bool hasHit = gun.gunHitReg.deltaRaycast(pos, direction);
-            
-            if (hasHit) break;
-            
-            bullet.transform.position = nextPosition;
-            
-            elapsedTime += Time.deltaTime;
-            
-            yield return null;
-        }
+        gun.gunHitReg.StartBullet(currentBullet);
         
-        Gun.Destroy(bullet);
+        yield return null;
     }
 
 
@@ -95,9 +85,11 @@ public class GunRenderer
             //
             
             Vector3 gunTarget = gun.gunDefaultTransform.transform.position + (gun.gunDefaultTransform.transform.position - gun.gunGrip.transform.position) + gunBobOffset;
+            Quaternion gunGripRelativeRotation = gun.gunGrip.transform.localRotation;
+            
             Quaternion gunTargetRotation = Quaternion.RotateTowards(
                 gun.transform.rotation, 
-                aimLookOffset * gunSwayOffset, 
+                aimLookOffset * gunSwayOffset * gunGripRelativeRotation, 
                 45f);
             
             gun.transform.position = Vector3.SmoothDamp(
