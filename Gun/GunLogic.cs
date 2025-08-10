@@ -4,6 +4,8 @@ using UnityEngine;
 public class GunLogic
 {
     private bool b_CanShoot = true;
+    private bool b_isFiring = false;
+    
     private uint currentAmmo;
     private float lastFireTime = 0f;
 
@@ -17,30 +19,35 @@ public class GunLogic
         
         currentAmmo = gun.maxAmmo;
     }
-
     
     IEnumerator ShootCoroutine()
     {
         b_CanShoot = false;
-        
-        for (int i = 0; i < gun.burstBullets; i++)
+
+        do
         {
-            for (int j = 0; j < gun.shotsPerUse; j++)
+            for (int i = 0; i < gun.burstBullets; i++)
             {
-                if (currentAmmo == 0) continue;
+                for (int j = 0; j < gun.shotsPerUse; j++)
+                {
+                    if (currentAmmo == 0) continue;
                 
-                currentAmmo--;
+                    currentAmmo--;
 
-                gun.gunAnimation.PlayAnimation("Fire");
-                gun.gunAudio.PlaySound("Fire");
-                gun.gunRenderer.ShootVFX();
+                    gun.gunAnimation.PlayAnimation("Fire");
+                    gun.gunAudio.PlaySound("Fire");
+                    gun.gunRenderer.ShootVFX();
 
-                gun.StartCoroutine(gun.gunRenderer.DrawBullet());
+                    gun.StartCoroutine(gun.gunRenderer.DrawBullet());
+                }
+                
+                yield return new WaitForSeconds(60f / gun.RPM);
             }
-
-            yield return new WaitForSeconds(60f / gun.RPM);
-        }
-
+            
+            if (gun.fireMode != FireMode.Auto) b_isFiring = false;
+            
+        } while (b_isFiring) ;
+        
         b_CanShoot = true;
     }
 
@@ -66,6 +73,8 @@ public class GunLogic
 
     public void Update()
     {
+        b_isFiring = Input.GetMouseButton(PlayerInventory.LMB_ID);
+        
         if (Input.GetKeyDown(KeyCode.R))
         {
             Reload();
