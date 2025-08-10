@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
 using UnityEditor;
@@ -33,7 +34,8 @@ public class Gun : Item
     public uint shotsPerUse = 1;
     
     public FireMode fireMode = FireMode.Semi;
-    
+    public float bulletDropIntensity = 0.5f;
+
     [Header("Rendering")]
     public float cameraRecoil = 2f;
     public float BobFrequencyMult = 6f;
@@ -47,6 +49,8 @@ public class Gun : Item
     public GameObject firePoint;
     public GameObject bulletPrefab;
     public GameObject gunGrip;
+
+    public GameObject gunBulletHoleTexture;
     
     private Player user;
     
@@ -59,17 +63,7 @@ public class Gun : Item
     
     public override void Use()
     {
-        if (fireMode == FireMode.Semi || fireMode == FireMode.Burst)
-        {
-            gunLogic.Shoot();
-        }
-        else
-        {
-            while (Input.GetMouseButtonDown(PlayerInventory.LMB_ID))
-            {
-                gunLogic.Shoot();
-            }
-        }
+        gunLogic.Shoot();
     }
     
     void Update()
